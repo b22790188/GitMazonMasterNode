@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 
 public interface ServiceRepository extends JpaRepository<Service, Long> {
-
+    Service findByUserUsernameAndServiceName(String userName, String serviceName);
 }

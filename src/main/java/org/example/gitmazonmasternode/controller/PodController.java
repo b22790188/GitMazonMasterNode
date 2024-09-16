@@ -22,16 +22,21 @@ public class PodController {
     private ServiceRepository serviceRepository;
 
     @GetMapping("/info")
-    public Map<String, String> getInstanceInfo(@RequestParam String username) {
+    public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String serviceName) {
 
-        String instanceIp = "18.182.42.57";
-        String containerName = "pusheventtest";
+//        String instanceIp = "18.182.42.57";
+//        String containerName = "pusheventtest";
+        Service service = serviceRepository.findByUserUsernameAndServiceName(username, serviceName);
+
+        if(service == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Service not found"));
+        }
 
         Map<String, String> instanceInfo = new HashMap<>();
-        instanceInfo.put("podIP", instanceIp);
-        instanceInfo.put("container", containerName);
+        instanceInfo.put("podIP", service.getInstanceIp());
+        instanceInfo.put("container", service.getContainerName());
 
-        return instanceInfo;
+        return ResponseEntity.ok(instanceInfo);
     }
 
     @PostMapping("/registerService")
@@ -45,16 +50,23 @@ public class PodController {
            userRepository.save(user);
         }
 
-        // Concat serviceUrl
+
+        String repoUrl = registerServiceRequestDTO.getRepoUrl();
+        String serviceName = registerServiceRequestDTO.getServiceName();
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
+
+        String instanceIp = "18.182.42.57";
+        String containerName = extractContainerNameFromRepoUrl(repoUrl);
 
         // Create service and associate with user
         Service service = new Service();
         service.setUser(user);
-        service.setRepoUrl(registerServiceRequestDTO.getRepoUrl());
-        service.setServiceName(registerServiceRequestDTO.getServiceName());
+        service.setRepoUrl(repoUrl);
+        service.setServiceName(serviceName);
         service.setEndpoint(serviceUrl);
+        service.setInstanceIp(instanceIp);
+        service.setContainerName(containerName);
 
         user.addService(service);
         userRepository.save(user);
@@ -65,6 +77,15 @@ public class PodController {
         response.put("message", "您的服務網址是" + serviceUrl +"，將會在幾分鐘之內啟動");
 
         return ResponseEntity.ok(response);
+    }
+
+    private String extractContainerNameFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            // get string after last "/" and remove .git
+            return repoUrl.substring(repoUrl.lastIndexOf("/") + 1, repoUrl.lastIndexOf(".git"));
+        }
+
+        return null;
     }
 }
 

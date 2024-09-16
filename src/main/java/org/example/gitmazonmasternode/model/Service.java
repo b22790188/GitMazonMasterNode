@@ -25,4 +25,10 @@ public class Service {
 
     @Column(name = "service_name", nullable = false)
     private String serviceName;
+
+    @Column(name = "instance_ip")
+    private String instanceIp;
+
+    @Column(name = "container_name")
+    private String containerName;
 }
