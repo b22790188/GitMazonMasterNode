@@ -81,8 +81,14 @@ public class PodController {
 
     private String extractContainerNameFromRepoUrl(String repoUrl) {
         if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
-            // get string after last "/" and remove .git
-            return repoUrl.substring(repoUrl.lastIndexOf("/") + 1, repoUrl.lastIndexOf(".git"));
+            // get string after last "/" and remove .git, only support https format now
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            String username = parts[1];
+            String serviceName = parts[2];
+
+            return username + "_" + serviceName;
         }
 
         return null;
