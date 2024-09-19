@@ -37,7 +37,7 @@ public class PodController {
         }
 
         Map<String, String> instanceInfo = new HashMap<>();
-        instanceInfo.put("podIP", service.getInstanceIp());
+        instanceInfo.put("podIP", service.getWorkerNodeIp());
         instanceInfo.put("container", service.getContainerName());
 
         return ResponseEntity.ok(instanceInfo);
@@ -60,6 +60,7 @@ public class PodController {
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
+        // call api to check available port on worker node
         String instanceIp = "18.182.42.57";
         String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
 
@@ -81,11 +82,17 @@ public class PodController {
         service.setRepoUrl(repoUrl);
         service.setServiceName(serviceName);
         service.setEndpoint(serviceUrl);
-        service.setInstanceIp(instanceIp);
+        service.setWorkerNodeIp(instanceIp);
         service.setContainerName(containerName);
+        service.setPort(availablePort);
 
         user.addService(service);
         userRepository.save(user);
+
+        //notify webhook server to build image
+        notifyWebhookServer(repoUrl);
+
+        //todo: call nginx to register endpoint
 
         Map<String, String> response = new HashMap<>();
         response.put("serviceUrl", serviceUrl);
@@ -93,6 +100,33 @@ public class PodController {
 
         return ResponseEntity.ok(response);
     }
+
+    private void notifyWebhookServer(String repoUrl) {
+        String webhookUrl = "http://54.168.192.186:8080/deploy";
+
+        String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
+        String repositoryName = extractServiceNameFromRepoUrl(repoUrl);
+
+        // 構建要傳遞給 webhook server 的資料
+        Map<String, Object> payload = new HashMap<>();
+        Map<String, Object> repository = new HashMap<>();
+        Map<String, Object> owner = new HashMap<>();
+
+        owner.put("login", repositoryOwner);
+        repository.put("name", repositoryName);
+        repository.put("owner", owner);
+        payload.put("repository", repository);
+
+        // 發送 POST 請求給 webhook server
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(webhookUrl, payload, String.class);
+
+        if(responseEntity.getStatusCode().is2xxSuccessful()) {
+            log.info("Webhook server notified successfully.");
+        } else {
+            log.error("Failed to notify webhook server. Status code: " + responseEntity.getStatusCode());
+        }
+    }
+
 
     private String extractContainerNameFromRepoUrl(String repoUrl) {
         if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
@@ -104,6 +138,28 @@ public class PodController {
             String serviceName = parts[2];
 
             return username + "_" + serviceName;
+        }
+
+        return null;
+    }
+
+    private String extractOwnerFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            return parts[1];
+        }
+
+        return null;
+    }
+
+    private String extractServiceNameFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            return parts[2];
         }
 
         return null;
