@@ -1,5 +1,6 @@
 package org.example.gitmazonmasternode.controller;
 
+import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
 import org.example.gitmazonmasternode.model.Service;
 import org.example.gitmazonmasternode.model.User;
@@ -8,10 +9,12 @@ import org.example.gitmazonmasternode.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
 
+@Log4j2
 @RestController
 public class PodController {
 
@@ -21,11 +24,12 @@ public class PodController {
     @Autowired
     private ServiceRepository serviceRepository;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     @GetMapping("/info")
     public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String serviceName) {
 
-//        String instanceIp = "18.182.42.57";
-//        String containerName = "pusheventtest";
         Service service = serviceRepository.findByUserUsernameAndServiceName(username, serviceName);
 
         if(service == null) {
@@ -57,6 +61,18 @@ public class PodController {
             + "/" + registerServiceRequestDTO.getServiceName();
 
         String instanceIp = "18.182.42.57";
+        String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
+
+        ResponseEntity<Map> responseEntity = restTemplate.getForEntity(availablePortUrl, Map.class);
+        if(!responseEntity.getStatusCode().is2xxSuccessful() || responseEntity.getBody() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch available port"));
+        }
+
+        //todo: add port into service table
+        int availablePort = (int) responseEntity.getBody().get("availablePort");
+
+        log.info(availablePort);
+
         String containerName = extractContainerNameFromRepoUrl(repoUrl);
 
         // Create service and associate with user
@@ -70,7 +86,6 @@ public class PodController {
 
         user.addService(service);
         userRepository.save(user);
-
 
         Map<String, String> response = new HashMap<>();
         response.put("serviceUrl", serviceUrl);
