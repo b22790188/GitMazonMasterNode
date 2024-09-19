@@ -14,7 +14,7 @@ public class Service {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "uesr_id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(name = "repo_url", nullable = false)
@@ -26,9 +26,12 @@ public class Service {
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
-    @Column(name = "instance_ip")
-    private String instanceIp;
+    @Column(name = "workerNodeIp", nullable = false)
+    private String workerNodeIp;
 
-    @Column(name = "container_name")
+    @Column(name = "container_name", nullable = false)
     private String containerName;
+
+    @Column(name = "port", nullable = false)
+    private Integer port;
 }
