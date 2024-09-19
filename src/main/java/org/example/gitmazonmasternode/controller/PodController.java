@@ -28,9 +28,9 @@ public class PodController {
     private RestTemplate restTemplate;
 
     @GetMapping("/info")
-    public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String serviceName) {
+    public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String repoName) {
 
-        Service service = serviceRepository.findByUserUsernameAndServiceName(username, serviceName);
+        Service service = serviceRepository.findByUserUsernameAndRepoName(username, repoName);
 
         if(service == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "Service not found"));
@@ -39,6 +39,7 @@ public class PodController {
         Map<String, String> instanceInfo = new HashMap<>();
         instanceInfo.put("podIP", service.getWorkerNodeIp());
         instanceInfo.put("container", service.getContainerName());
+        instanceInfo.put("port", service.getPort().toString());
 
         return ResponseEntity.ok(instanceInfo);
     }
@@ -69,17 +70,16 @@ public class PodController {
             return ResponseEntity.badRequest().body(Map.of("error", "Failed to fetch available port"));
         }
 
-        //todo: add port into service table
         int availablePort = (int) responseEntity.getBody().get("availablePort");
 
-        log.info(availablePort);
-
+        String repoName = extractRepoNameFromRepoUrl(repoUrl);
         String containerName = extractContainerNameFromRepoUrl(repoUrl);
 
         // Create service and associate with user
         Service service = new Service();
         service.setUser(user);
         service.setRepoUrl(repoUrl);
+        service.setRepoName(repoName);
         service.setServiceName(serviceName);
         service.setEndpoint(serviceUrl);
         service.setWorkerNodeIp(instanceIp);
@@ -92,6 +92,7 @@ public class PodController {
         //notify webhook server to build image
         notifyWebhookServer(repoUrl);
 
+        //send allocated port
         //todo: call nginx to register endpoint
 
         Map<String, String> response = new HashMap<>();
@@ -105,7 +106,7 @@ public class PodController {
         String webhookUrl = "http://54.168.192.186:8080/deploy";
 
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
-        String repositoryName = extractServiceNameFromRepoUrl(repoUrl);
+        String repositoryName = extractRepoNameFromRepoUrl(repoUrl);
 
         // 構建要傳遞給 webhook server 的資料
         Map<String, Object> payload = new HashMap<>();
@@ -154,7 +155,7 @@ public class PodController {
         return null;
     }
 
-    private String extractServiceNameFromRepoUrl(String repoUrl) {
+    private String extractRepoNameFromRepoUrl(String repoUrl) {
         if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
             String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
             String[] parts = path.split("/");

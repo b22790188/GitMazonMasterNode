@@ -20,6 +20,9 @@ public class Service {
     @Column(name = "repo_url", nullable = false)
     private String repoUrl;
 
+    @Column(name = "repo_name", nullable = false)
+    private String repoName;
+
     @Column(name = "endpoint", nullable = false)
     private String endpoint;
 
