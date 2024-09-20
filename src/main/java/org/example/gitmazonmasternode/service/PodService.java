@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.*;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +27,11 @@ public class PodService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+    @Autowired
+    private Ec2Client ec2Client;
+
+    private String securityGroupId = "sg-07fee68e6775cab2f";
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 
@@ -84,11 +91,15 @@ public class PodService {
         user.addService(service);
         serviceRepository.save(service);
 
+        addSecurityGroupRule(securityGroupId, availablePort);
+
         // Notify webhook server to build image upon registration
         notifyWebhookServer(repoUrl);
 
         // Register endpoint
         registerEndpoint(registerServiceRequestDTO.getUsername(), serviceName, instanceIp, availablePort);
+
+        // todo: add SG Rule here
 
         Map<String, String> serviceUrlResponse = new HashMap<>();
         serviceUrlResponse.put("serviceUrl", serviceUrl);
@@ -176,5 +187,50 @@ public class PodService {
         }
 
         return null;
+    }
+
+    private void addSecurityGroupRule(String securityGroupId, int port) {
+        try {
+
+            DescribeSecurityGroupsRequest describeRequest = DescribeSecurityGroupsRequest.builder()
+                .groupIds(securityGroupId)
+                .build();
+
+            DescribeSecurityGroupsResponse describeResponse = ec2Client.describeSecurityGroups(describeRequest);
+
+            // Get first security group
+            SecurityGroup securityGroup = describeResponse.securityGroups().get(0);
+
+            // Check if rule already exist
+            boolean isRuleExists = securityGroup.ipPermissions().stream().anyMatch(ipPermission ->
+                ipPermission.fromPort() == port &&
+                    ipPermission.toPort() == port &&
+                    ipPermission.ipRanges().stream().anyMatch(ipRange -> ipRange.cidrIp().equals("0.0.0.0/0"))
+
+            );
+
+            if (isRuleExists) {
+                log.info("Rule already exists. No need to add rule");
+            } else {
+
+                // Create permission rule
+                IpPermission ipPermission = IpPermission.builder()
+                    .ipProtocol("tcp")
+                    .fromPort(port)
+                    .toPort(port)
+                    .ipRanges(IpRange.builder().cidrIp("0.0.0.0/0").build())
+                    .build();
+
+                AuthorizeSecurityGroupIngressRequest ingressRequest = AuthorizeSecurityGroupIngressRequest.builder()
+                    .groupId(securityGroupId)
+                    .ipPermissions(ipPermission)
+                    .build();
+
+                ec2Client.authorizeSecurityGroupIngress(ingressRequest);
+                log.info("Security group rule added successfully.");
+            }
+        } catch (Ec2Exception e) {
+            log.error("Failed to add security group rule: " + securityGroupId + ", cause:" + e.awsErrorDetails().errorMessage(), e);
+        }
     }
 }
