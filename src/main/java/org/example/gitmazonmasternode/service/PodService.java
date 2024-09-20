@@ -1,4 +1,4 @@
-package org.example.gitmazonmasternode;
+package org.example.gitmazonmasternode.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
@@ -65,7 +65,7 @@ public class PodService {
             return Map.of("error", "Failed to fetch available port");
         }
 
-        int availablePort = (int) responseEntity.getBody().get("availablePort");
+        Integer availablePort = (Integer) responseEntity.getBody().get("availablePort");
 
         String repoName = extractRepoNameFromRepoUrl(repoUrl);
         String containerName = extractContainerNameFromRepoUrl(repoUrl);
@@ -84,10 +84,11 @@ public class PodService {
         user.addService(service);
         serviceRepository.save(service);
 
-        //notify webhook server to build image upon registration
+        // Notify webhook server to build image upon registration
         notifyWebhookServer(repoUrl);
 
-        //todo: call nginx to register endpoint
+        // Register endpoint
+        registerEndpoint(registerServiceRequestDTO.getUsername(), serviceName, instanceIp, availablePort);
 
         Map<String, String> serviceUrlResponse = new HashMap<>();
         serviceUrlResponse.put("serviceUrl", serviceUrl);
@@ -103,7 +104,7 @@ public class PodService {
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
         String repositoryName = extractRepoNameFromRepoUrl(repoUrl);
 
-        // 構建要傳遞給 webhook server 的資料
+        // Create format needed by webhook server
         Map<String, Object> payload = new HashMap<>();
         Map<String, Object> repository = new HashMap<>();
         Map<String, Object> owner = new HashMap<>();
@@ -113,7 +114,6 @@ public class PodService {
         repository.put("owner", owner);
         payload.put("repository", repository);
 
-        // 發送 POST 請求給 webhook server
         ResponseEntity<String> responseEntity = restTemplate.postForEntity(webhookUrl, payload, String.class);
 
         if (responseEntity.getStatusCode().is2xxSuccessful()) {
@@ -123,6 +123,23 @@ public class PodService {
         }
     }
 
+    private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) {
+        String registerEndpointUrl = "http://stylish.monster:8080/registerEndpoint";
+        Map<String, Object> payload = new HashMap<>();
+
+        payload.put("username", username);
+        payload.put("serviceName", serviceName);
+        payload.put("instanceIp", instanceIp);
+        payload.put("port", port.toString());
+
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(registerEndpointUrl, payload, String.class);
+
+        if (responseEntity.getStatusCode().is2xxSuccessful()) {
+            log.info("Register endpoint  successfully.");
+        } else {
+            log.error("Failed to register endpoint. Status code: " + responseEntity.getStatusCode());
+        }
+    }
 
     private String extractContainerNameFromRepoUrl(String repoUrl) {
         if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {

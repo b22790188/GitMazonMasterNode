@@ -1,8 +1,8 @@
 package org.example.gitmazonmasternode.controller;
 
 import lombok.extern.log4j.Log4j2;
-import org.example.gitmazonmasternode.PodService;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
+import org.example.gitmazonmasternode.service.PodService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
