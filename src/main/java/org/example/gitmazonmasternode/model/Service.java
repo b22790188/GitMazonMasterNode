@@ -17,6 +17,10 @@ public class Service {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "worker_node_id", nullable = false)
+    private WorkerNode workerNode;
+
     @Column(name = "repo_url", nullable = false)
     private String repoUrl;
 
@@ -29,7 +33,7 @@ public class Service {
     @Column(name = "service_name", nullable = false)
     private String serviceName;
 
-    @Column(name = "workerNodeIp", nullable = false)
+    @Column(name = "worker_node_ip", nullable = false)
     private String workerNodeIp;
 
     @Column(name = "container_name", nullable = false)
