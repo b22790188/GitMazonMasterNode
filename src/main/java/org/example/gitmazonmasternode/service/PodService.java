@@ -3,8 +3,10 @@ package org.example.gitmazonmasternode.service;
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
 import org.example.gitmazonmasternode.model.User;
+import org.example.gitmazonmasternode.model.WorkerNode;
 import org.example.gitmazonmasternode.repository.ServiceRepository;
 import org.example.gitmazonmasternode.repository.UserRepository;
+import org.example.gitmazonmasternode.repository.WorkerNodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,10 @@ public class PodService {
     @Autowired
     private Ec2Client ec2Client;
 
+    //todo: refactor to environment variable
     private String securityGroupId = "sg-07fee68e6775cab2f";
+    @Autowired
+    private WorkerNodeRepository workerNodeRepository;
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 
@@ -40,8 +45,13 @@ public class PodService {
             return Map.of("error", "Service not found");
         }
 
+        WorkerNode workerNode = service.getWorkerNode();
+        if (workerNode == null) {
+            return Map.of("error", "Worker node not found");
+        }
+
         Map<String, String> instanceInfo = new HashMap<>();
-        instanceInfo.put("podIP", service.getWorkerNodeIp());
+        instanceInfo.put("podIP", workerNode.getWorkerNodeIp());
         instanceInfo.put("container", service.getContainerName());
         instanceInfo.put("port", service.getPort().toString());
 
@@ -63,10 +73,16 @@ public class PodService {
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
+        //todo: check existing worker node
+        //todo: design a method to choose one worker node and pass instanceIP to following variable
+
         // call api to check available port on worker node
         String instanceIp = "18.182.42.57";
-        String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
+        WorkerNode workerNode = new WorkerNode();
+        workerNode.setWorkerNodeIp(instanceIp);
+        workerNodeRepository.save(workerNode);
 
+        String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
         ResponseEntity<Map> responseEntity = restTemplate.getForEntity(availablePortUrl, Map.class);
         if (!responseEntity.getStatusCode().is2xxSuccessful() || responseEntity.getBody() == null) {
             return Map.of("error", "Failed to fetch available port");
@@ -80,6 +96,7 @@ public class PodService {
         // Create service and associate with user
         org.example.gitmazonmasternode.model.Service service = new org.example.gitmazonmasternode.model.Service();
         service.setUser(user);
+        service.setWorkerNode(workerNode);
         service.setRepoUrl(repoUrl);
         service.setRepoName(repoName);
         service.setServiceName(serviceName);
@@ -99,7 +116,7 @@ public class PodService {
         // Register endpoint
         registerEndpoint(registerServiceRequestDTO.getUsername(), serviceName, instanceIp, availablePort);
 
-        // todo: add SG Rule here
+        // todo: move add SG rule from above to here
 
         Map<String, String> serviceUrlResponse = new HashMap<>();
         serviceUrlResponse.put("serviceUrl", serviceUrl);
