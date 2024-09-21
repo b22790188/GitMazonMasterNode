@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.ec2.model.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Log4j2
 @Service
@@ -33,10 +34,19 @@ public class PodService {
     @Autowired
     private Ec2Client ec2Client;
 
-    //todo: refactor to environment variable
-    private String securityGroupId = "sg-07fee68e6775cab2f";
     @Autowired
     private WorkerNodeRepository workerNodeRepository;
+
+    //todo: refactor to environment variable
+    private final String securityGroupId = "sg-07fee68e6775cab2f";
+
+    private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
+
+    private final String[] workerNodes = {
+        "18.182.42.57",
+        "18.176.54.151",
+        "13.115.128.94"
+    };
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 
@@ -73,15 +83,36 @@ public class PodService {
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
-        //todo: check existing worker node
-        //todo: design a method to choose one worker node and pass instanceIP to following variable
+        //todo: check existing worker node: sprint 3
 
-        // call api to check available port on worker node
-        String instanceIp = "18.182.42.57";
-        WorkerNode workerNode = new WorkerNode();
-        workerNode.setWorkerNodeIp(instanceIp);
-        workerNodeRepository.save(workerNode);
+//        // worker node 1
+//        String workerNodeIp1 = "18.182.42.57";
+//        WorkerNode workerNode1 = new WorkerNode();
+//        workerNode1.setWorkerNodeIp(workerNodeIp1);
+//        workerNodeRepository.save(workerNode1);
+//
+//        // worker node 2
+//        String workerNodeIp2 = "18.176.54.151";
+//        WorkerNode workerNode2 = new WorkerNode();
+//        workerNode1.setWorkerNodeIp(workerNodeIp2);
+//        workerNodeRepository.save(workerNode2);
+//
+//        // worker node 3
+//        String workerNodeIp3 = "13.115.128.94";
+//        WorkerNode workerNode3 = new WorkerNode();
+//        workerNode1.setWorkerNodeIp(workerNodeIp3);
+//        workerNodeRepository.save(workerNode3);
 
+        // Get worker node instance ip
+        String instanceIp = assignWorkerNode();
+        WorkerNode workerNode = workerNodeRepository.findByWorkerNodeIp(instanceIp);
+        if (workerNode == null) {
+            workerNode = new WorkerNode();
+            workerNode.setWorkerNodeIp(instanceIp);
+            workerNodeRepository.save(workerNode);
+        }
+
+        // Call api to check available port on worker node
         String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
         ResponseEntity<Map> responseEntity = restTemplate.getForEntity(availablePortUrl, Map.class);
         if (!responseEntity.getStatusCode().is2xxSuccessful() || responseEntity.getBody() == null) {
@@ -127,6 +158,7 @@ public class PodService {
     }
 
     private void notifyWebhookServer(String repoUrl) {
+        //todo: refactor image builder server ip to environment variable
         String webhookUrl = "http://54.168.192.186:8080/deploy";
 
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
@@ -249,5 +281,10 @@ public class PodService {
         } catch (Ec2Exception e) {
             log.error("Failed to add security group rule: " + securityGroupId + ", cause:" + e.awsErrorDetails().errorMessage(), e);
         }
+    }
+
+    private String assignWorkerNode() {
+        int currentIndex = currentWorkerNode.getAndUpdate(i -> (i + 1) % workerNodes.length);
+        return workerNodes[currentIndex];
     }
 }
