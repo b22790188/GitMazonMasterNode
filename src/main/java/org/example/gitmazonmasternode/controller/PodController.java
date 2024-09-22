@@ -24,7 +24,7 @@ public class PodController {
         return ResponseEntity.ok(instanceInfo);
     }
 
-    @GetMapping("/user")
+    @GetMapping("/userService")
     public ResponseEntity<?> getUserInfo(@RequestParam String username) {
         log.info(username);
         List<ServiceInfoResponseDTO> serviceInfoResponseDTOList = podService.getServiceInfoByUserName(username);

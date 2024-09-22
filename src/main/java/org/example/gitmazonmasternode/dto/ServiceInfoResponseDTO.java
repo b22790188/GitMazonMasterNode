@@ -6,7 +6,8 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class ServiceInfoResponseDTO {
-    private String endpoint;
-    private String repoName;
+    private String username;
     private String serviceName;
+    private String repoName;
+    private String endpoint;
 }
