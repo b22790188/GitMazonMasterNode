@@ -2,6 +2,7 @@ package org.example.gitmazonmasternode.service;
 
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
+import org.example.gitmazonmasternode.dto.ServiceInfoResponseDTO;
 import org.example.gitmazonmasternode.model.User;
 import org.example.gitmazonmasternode.model.WorkerNode;
 import org.example.gitmazonmasternode.repository.ServiceRepository;
@@ -15,6 +16,7 @@ import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,6 +70,10 @@ public class PodService {
         return instanceInfo;
     }
 
+    public List<ServiceInfoResponseDTO> getServiceInfoByUserName(String username) {
+        return serviceRepository.findServiceInfoByUserName(username);
+    }
+
     public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO) {
 
         // Get user from db, if not found, create it.
@@ -84,24 +90,6 @@ public class PodService {
             + "/" + registerServiceRequestDTO.getServiceName();
 
         //todo: check existing worker node: sprint 3
-
-//        // worker node 1
-//        String workerNodeIp1 = "18.182.42.57";
-//        WorkerNode workerNode1 = new WorkerNode();
-//        workerNode1.setWorkerNodeIp(workerNodeIp1);
-//        workerNodeRepository.save(workerNode1);
-//
-//        // worker node 2
-//        String workerNodeIp2 = "18.176.54.151";
-//        WorkerNode workerNode2 = new WorkerNode();
-//        workerNode1.setWorkerNodeIp(workerNodeIp2);
-//        workerNodeRepository.save(workerNode2);
-//
-//        // worker node 3
-//        String workerNodeIp3 = "13.115.128.94";
-//        WorkerNode workerNode3 = new WorkerNode();
-//        workerNode1.setWorkerNodeIp(workerNodeIp3);
-//        workerNodeRepository.save(workerNode3);
 
         // Get worker node instance ip
         String instanceIp = assignWorkerNode();

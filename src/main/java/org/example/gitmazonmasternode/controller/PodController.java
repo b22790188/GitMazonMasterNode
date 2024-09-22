@@ -2,11 +2,13 @@ package org.example.gitmazonmasternode.controller;
 
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
+import org.example.gitmazonmasternode.dto.ServiceInfoResponseDTO;
 import org.example.gitmazonmasternode.service.PodService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Log4j2
@@ -18,17 +20,20 @@ public class PodController {
 
     @GetMapping("/info")
     public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String repoName) {
-
         Map<String, String> instanceInfo = podService.getInstanceInfo(username, repoName);
-
         return ResponseEntity.ok(instanceInfo);
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserInfo(@RequestParam String username) {
+        log.info(username);
+        List<ServiceInfoResponseDTO> serviceInfoResponseDTOList = podService.getServiceInfoByUserName(username);
+        return ResponseEntity.ok(serviceInfoResponseDTOList);
     }
 
     @PostMapping("/registerService")
     public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO) {
-
         Map<String, String> response = podService.registerService(registerServiceRequestDTO);
-
         return ResponseEntity.ok(response);
     }
 }
