@@ -3,6 +3,7 @@ package org.example.gitmazonmasternode.controller;
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -16,14 +17,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class AuthController {
 
     @Autowired
-    JwtUtil jwtUtil;
+    private JwtUtil jwtUtil;
+
+    @Value("${cors.allowed.origins}")
+    private String frontendServer;
 
     @GetMapping("/toFrontend")
     public String redirectToFrontend(@AuthenticationPrincipal OAuth2User principal) {
         // Get user info
         String username = principal.getAttribute("login");
         log.info(username);
-        return "redirect:http://localhost:8080/registerService.html?username=" + username;
+        return "redirect:" + frontendServer + "/registerService.html?username=" + username;
     }
 
     @GetMapping("/generateJwtToken")

@@ -9,5 +9,4 @@ public class GitMazonMasterNodeApplication {
     public static void main(String[] args) {
         SpringApplication.run(GitMazonMasterNodeApplication.class, args);
     }
-
 }

@@ -45,6 +45,11 @@ public class PodController {
 
     @PostMapping("/registerService")
     public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
+        Map<String, String> response = podService.registerService(registerServiceRequestDTO);
+        return ResponseEntity.ok(response);
+    }
+
+    private String getUsernameFromJwtInRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         log.info(authHeader);
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
@@ -53,15 +58,13 @@ public class PodController {
                 // Validate the token and extract the username
                 String username = jwtUtil.extractUsername(token);
                 log.info("JWT Token belongs to user: {}", username);
+                return username;
             } catch (JwtException e) {
                 log.error("Invalid JWT token: {}", e.getMessage());
-                return ResponseEntity.status(401).body(Map.of("error", "Invalid token"));
+                return null;
             }
         } else {
-            return ResponseEntity.status(400).body(Map.of("error", "Missing or invalid Authorization header"));
+            return "Missing Authorization header";
         }
-
-        Map<String, String> response = podService.registerService(registerServiceRequestDTO);
-        return ResponseEntity.ok(response);
     }
 }
