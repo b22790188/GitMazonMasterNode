@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +32,7 @@ public class PodController {
     }
 
     @GetMapping("/userService")
-    public ResponseEntity<?> getUserInfo(@RequestParam String username) {
+    public ResponseEntity<?> getServiceInfo(@RequestParam String username) {
         log.info(username);
         List<ServiceInfoResponseDTO> serviceInfoResponseDTOList = podService.getServiceInfoByUserName(username);
         return ResponseEntity.ok(serviceInfoResponseDTOList);
@@ -39,31 +40,35 @@ public class PodController {
 
     @PostMapping("/registerService")
     public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
+        Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
+        String username = userInfo.get("username");
+        String accessToken = userInfo.get("accessToken");
 
-        getUsernameFromJwtInRequest(request);
-
-        Map<String, String> response = podService.registerService(registerServiceRequestDTO);
+        Map<String, String> response = podService.registerService(registerServiceRequestDTO, accessToken);
         return ResponseEntity.ok(response);
     }
 
-    private String getUsernameFromJwtInRequest(HttpServletRequest request) {
+    private Map<String, String> getUserInfoFromJwtInRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
-        log.info(authHeader);
+        Map<String, String> userInfo = new HashMap<>();
+
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7); // Remove "Bearer " prefix
             try {
                 // Validate the token and extract the username
                 String username = jwtUtil.extractUsername(token);
                 String accessToken = jwtUtil.extractAccessToken(token);
-                log.info("JWT Token belongs to user: {}", username);
-                log.info("Access Token: {}", accessToken);
-                return username;
+                userInfo.put("username", username);
+                userInfo.put("accessToken", accessToken);
+
+                return userInfo;
             } catch (JwtException e) {
                 log.error("Invalid JWT token: {}", e.getMessage());
                 return null;
             }
         } else {
-            return "Missing Authorization header";
+            userInfo.put("error", "Missing or malformed Authorization header");
+            return userInfo;
         }
     }
 }

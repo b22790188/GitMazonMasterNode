@@ -36,16 +36,15 @@ public class AuthController {
         // Get user info
         OAuth2User principal = authentication.getPrincipal();
         String username = principal.getAttribute("login");
-        log.info(username);
 
         // Get token info
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
             authentication.getAuthorizedClientRegistrationId(),
             authentication.getName());
 
+        // Update access token
         if (client != null) {
             String accessToken = client.getAccessToken().getTokenValue();
-            log.info(accessToken);
 
             User user = userRepository.findByUsername(username);
             if (user != null) {

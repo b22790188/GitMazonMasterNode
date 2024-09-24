@@ -9,6 +9,9 @@ import org.example.gitmazonmasternode.repository.ServiceRepository;
 import org.example.gitmazonmasternode.repository.UserRepository;
 import org.example.gitmazonmasternode.repository.WorkerNodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
@@ -80,7 +83,7 @@ public class PodService {
         return serviceRepository.findServiceInfoByUserName(username);
     }
 
-    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO) {
+    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) {
 
         // Get user from db, if not found, create it.
         User user = userRepository.findByUsername(registerServiceRequestDTO.getUsername());
@@ -95,11 +98,16 @@ public class PodService {
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
+        String repoOwner = extractOwnerFromRepoUrl(repoUrl);
+        String repoName = extractRepoNameFromRepoUrl(repoUrl);
+        String containerName = extractContainerNameFromRepoUrl(repoUrl);
+
         //todo: check existing worker node: sprint 3
 
         //todo: handle duplicate service registration: sprint 4
 
         //todo: set user webhook here
+        setGithubWebhook(repoOwner, repoName, accessToken);
 
         // Get worker node instance ip
         String instanceIp = assignWorkerNode();
@@ -119,8 +127,6 @@ public class PodService {
 
         Integer availablePort = (Integer) responseEntity.getBody().get("availablePort");
 
-        String repoName = extractRepoNameFromRepoUrl(repoUrl);
-        String containerName = extractContainerNameFromRepoUrl(repoUrl);
 
         // Create service and associate with user
         org.example.gitmazonmasternode.model.Service service = new org.example.gitmazonmasternode.model.Service();
@@ -199,43 +205,6 @@ public class PodService {
         }
     }
 
-    private String extractContainerNameFromRepoUrl(String repoUrl) {
-        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
-            // get string after last "/" and remove .git, only support https format now
-            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
-            String[] parts = path.split("/");
-
-            String username = parts[1];
-            String serviceName = parts[2];
-
-            return username + "_" + serviceName;
-        }
-
-        return null;
-    }
-
-    private String extractOwnerFromRepoUrl(String repoUrl) {
-        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
-            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
-            String[] parts = path.split("/");
-
-            return parts[1];
-        }
-
-        return null;
-    }
-
-    private String extractRepoNameFromRepoUrl(String repoUrl) {
-        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
-            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
-            String[] parts = path.split("/");
-
-            return parts[2];
-        }
-
-        return null;
-    }
-
     private void addSecurityGroupRule(String securityGroupId, int port) {
         try {
 
@@ -285,4 +254,83 @@ public class PodService {
         int currentIndex = currentWorkerNode.getAndUpdate(i -> (i + 1) % workerNodes.length);
         return workerNodes[currentIndex];
     }
+
+    private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {
+        String setWebhookUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/hooks";
+
+        //todo: refactor webhookUrl to environment variable
+        String webhookUrl = "http://54.168.192.186:8080/deploy";
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("name", "web");
+        Map<String, Object> config = new HashMap<>();
+        config.put("url", webhookUrl);
+        config.put("content_type", "json");
+        payload.put("config", config);
+        payload.put("events", List.of("push"));
+        payload.put("active", true);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(accessToken);
+
+        log.info(accessToken);
+
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(setWebhookUrl, request, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                log.info("GitHub Webhook set successfully.");
+            } else {
+                log.error("Failed to set GitHub Webhook, status code: " + response.getStatusCode());
+            }
+        } catch (Exception e) {
+            if (e.getMessage().contains("422")) {
+                log.warn("Webhook already exists, continuing with the process.");
+            } else {
+                log.error("Failed to set GitHub Webhook, error: " + e.getMessage(), e);
+                throw e;
+            }
+        }
+    }
+
+    private String extractContainerNameFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            // get string after last "/" and remove .git, only support https format now
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            String username = parts[1];
+            String serviceName = parts[2];
+
+            return username + "_" + serviceName;
+        }
+
+        return null;
+    }
+
+    private String extractOwnerFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            return parts[1];
+        }
+
+        return null;
+    }
+
+    private String extractRepoNameFromRepoUrl(String repoUrl) {
+        if (repoUrl != null && repoUrl.contains("/") && repoUrl.endsWith(".git")) {
+            String path = repoUrl.substring(repoUrl.indexOf("://") + 3, repoUrl.lastIndexOf(".git"));
+            String[] parts = path.split("/");
+
+            return parts[2];
+        }
+
+        return null;
+    }
+
 }
