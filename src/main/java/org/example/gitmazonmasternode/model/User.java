@@ -19,13 +19,16 @@ public class User {
     @Column(nullable = false, unique = true)
     private String username;
 
+    @Column(nullable = false)
+    private String githubAccessToken;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Service> services;
 
     public void addService(Service service) {
         // Only create list when services is null,
         // for situation when there is new user want to add service.
-        if(services == null) {
+        if (services == null) {
             services = new ArrayList<>();
         }
 

@@ -27,9 +27,10 @@ public class JwtUtil {
         this.SECRET_KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String username) {
+    public String generateToken(String username, String accessToken) {
         return Jwts.builder()
             .setSubject(username)
+            .claim("accessToken", accessToken)
             .setIssuedAt(new Date())
             .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
             .signWith(SECRET_KEY)
@@ -39,6 +40,11 @@ public class JwtUtil {
     public String extractUsername(String token) {
         Claims claims = validateToken(token);
         return claims.getSubject();
+    }
+
+    public String extractAccessToken(String token) {
+        Claims claims = validateToken(token);
+        return claims.get("accessToken", String.class);
     }
 
     public Claims validateToken(String token) throws JwtException {

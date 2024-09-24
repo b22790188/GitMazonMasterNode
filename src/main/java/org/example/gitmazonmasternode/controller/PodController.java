@@ -9,8 +9,6 @@ import org.example.gitmazonmasternode.service.PodService;
 import org.example.gitmazonmasternode.utils.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,10 +26,6 @@ public class PodController {
 
     @GetMapping("/info")
     public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String repoName) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Object principal = authentication.getPrincipal();
-        log.info(principal);
-
         Map<String, String> instanceInfo = podService.getInstanceInfo(username, repoName);
         return ResponseEntity.ok(instanceInfo);
     }
@@ -45,6 +39,9 @@ public class PodController {
 
     @PostMapping("/registerService")
     public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
+
+        getUsernameFromJwtInRequest(request);
+
         Map<String, String> response = podService.registerService(registerServiceRequestDTO);
         return ResponseEntity.ok(response);
     }
@@ -57,7 +54,9 @@ public class PodController {
             try {
                 // Validate the token and extract the username
                 String username = jwtUtil.extractUsername(token);
+                String accessToken = jwtUtil.extractAccessToken(token);
                 log.info("JWT Token belongs to user: {}", username);
+                log.info("Access Token: {}", accessToken);
                 return username;
             } catch (JwtException e) {
                 log.error("Invalid JWT token: {}", e.getMessage());

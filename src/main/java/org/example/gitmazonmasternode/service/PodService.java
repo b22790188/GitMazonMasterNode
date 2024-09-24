@@ -10,6 +10,7 @@ import org.example.gitmazonmasternode.repository.UserRepository;
 import org.example.gitmazonmasternode.repository.WorkerNodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -39,6 +40,9 @@ public class PodService {
     @Autowired
     private WorkerNodeRepository workerNodeRepository;
 
+    @Autowired
+    private OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
+
     //todo: refactor to environment variable
     private final String securityGroupId = "sg-07fee68e6775cab2f";
 
@@ -49,6 +53,8 @@ public class PodService {
         "18.176.54.151",
         "13.115.128.94"
     };
+    @Autowired
+    private OAuth2AuthorizedClientService authorizedClientService;
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 
@@ -90,6 +96,10 @@ public class PodService {
             + "/" + registerServiceRequestDTO.getServiceName();
 
         //todo: check existing worker node: sprint 3
+
+        //todo: handle duplicate service registration: sprint 4
+
+        //todo: set user webhook here
 
         // Get worker node instance ip
         String instanceIp = assignWorkerNode();
