@@ -1,5 +1,6 @@
 package org.example.gitmazonmasternode.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
 import org.example.gitmazonmasternode.dto.ServiceInfoResponseDTO;
@@ -47,6 +48,23 @@ public class PodService {
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
+    @PostConstruct
+    public void initWorkerNodes() {
+        // Initialize worker node with 1 cpu and 8G RAM,
+        // and leave 80% of resources for user service usage
+        for (String nodeIp : workerNodes) {
+            if (workerNodeRepository.findByWorkerNodeIp(nodeIp) == null) {
+                WorkerNode workerNode = new WorkerNode();
+                workerNode.setWorkerNodeIp(nodeIp);
+                workerNode.setCpu(1.0f);
+                workerNode.setMemory(8.0f);
+                workerNode.setAvailableCpu(1.0f * 0.8f);
+                workerNode.setAvailableMemory(8.0f * 0.8f);
+                workerNodeRepository.save(workerNode);
+            }
+        }
+    }
+
     private final String[] workerNodes = {
         "18.182.42.57",
         "18.176.54.151",
@@ -86,8 +104,6 @@ public class PodService {
         if (user == null) {
             user = new User();
             user.setUsername(registerServiceRequestDTO.getUsername());
-            //todo: remove
-            user.setGithubAccessToken(accessToken);
             userRepository.save(user);
         }
 
@@ -107,32 +123,12 @@ public class PodService {
 
         setGithubWebhook(repoOwner, repoName, accessToken);
 
-        // Initialize worker node with 1 cpu and 8G RAM,
-        // and leave 80% of resources for user service usage
-        for (int i = 0; i < workerNodes.length; i++) {
-            WorkerNode workerNode = new WorkerNode();
-            workerNode.setWorkerNodeIp(workerNodes[i]);
-            workerNode.setCpu(1.0f);
-            workerNode.setMemory(8.0f);
-            workerNode.setAvailableCpu(1.0f * 0.8f);
-            workerNode.setAvailableMemory(8.0f * 0.8f);
-            workerNodeRepository.save(workerNode);
-        }
 
         // Get worker node instance ip
         Float serviceReqCpu = registerServiceRequestDTO.getCpu();
         Float serviceReqMemory = registerServiceRequestDTO.getMemory();
         WorkerNode workerNode = assignWorkerNode(serviceReqCpu, serviceReqMemory);
         String instanceIp = workerNode.getWorkerNodeIp();
-
-//        WorkerNode workerNode = workerNodeRepository.findByWorkerNodeIp(instanceIp);
-//        if (workerNode == null) {
-//            workerNode = new WorkerNode();
-//            workerNode.setWorkerNodeIp(instanceIp);
-//            workerNode.setCpu(1);
-//            workerNode.setMemory(8);
-//            workerNodeRepository.save(workerNode);
-//        }
 
         // Call api to check available port on worker node
         String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
