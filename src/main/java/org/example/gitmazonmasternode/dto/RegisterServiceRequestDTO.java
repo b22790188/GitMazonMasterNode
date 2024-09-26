@@ -9,4 +9,6 @@ public class RegisterServiceRequestDTO {
     public String username;
     public String serviceName;
     public String repoUrl;
+    public Float cpu;
+    public Float memory;
 }

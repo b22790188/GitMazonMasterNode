@@ -20,4 +20,17 @@ public class WorkerNode {
 
     @OneToMany(mappedBy = "workerNode", fetch = FetchType.LAZY)
     private List<Service> services;
+
+    @Column(name = "cpu", nullable = false)
+    private Float cpu;
+
+    @Column(name = "memory", nullable = false)
+    private Float memory;
+
+    @Column(name = "availabe_cpu", nullable = false)
+    private Float availableCpu;
+
+    @Column(name = "available_memory", nullable = false)
+    private Float availableMemory;
 }
+

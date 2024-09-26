@@ -41,4 +41,10 @@ public class Service {
 
     @Column(name = "port", nullable = false)
     private Integer port;
+
+    @Column(name = "cpu", nullable = false)
+    private Float cpu;
+
+    @Column(name = "memory", nullable = false)
+    private Float memory;
 }

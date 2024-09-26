@@ -13,7 +13,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.services.ec2.Ec2Client;
@@ -43,9 +42,6 @@ public class PodService {
     @Autowired
     private WorkerNodeRepository workerNodeRepository;
 
-    @Autowired
-    private OAuth2AuthorizedClientService oAuth2AuthorizedClientService;
-
     //todo: refactor to environment variable
     private final String securityGroupId = "sg-07fee68e6775cab2f";
 
@@ -56,8 +52,6 @@ public class PodService {
         "18.176.54.151",
         "13.115.128.94"
     };
-    @Autowired
-    private OAuth2AuthorizedClientService authorizedClientService;
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 
@@ -75,6 +69,8 @@ public class PodService {
         instanceInfo.put("podIP", workerNode.getWorkerNodeIp());
         instanceInfo.put("container", service.getContainerName());
         instanceInfo.put("port", service.getPort().toString());
+        instanceInfo.put("cpu", service.getCpu().toString());
+        instanceInfo.put("memory", service.getMemory().toString());
 
         return instanceInfo;
     }
@@ -90,9 +86,12 @@ public class PodService {
         if (user == null) {
             user = new User();
             user.setUsername(registerServiceRequestDTO.getUsername());
+            //todo: remove
+            user.setGithubAccessToken(accessToken);
             userRepository.save(user);
         }
 
+        // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();
         String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
@@ -106,17 +105,34 @@ public class PodService {
 
         //todo: handle duplicate service registration: sprint 4
 
-        //todo: set user webhook here
         setGithubWebhook(repoOwner, repoName, accessToken);
 
-        // Get worker node instance ip
-        String instanceIp = assignWorkerNode();
-        WorkerNode workerNode = workerNodeRepository.findByWorkerNodeIp(instanceIp);
-        if (workerNode == null) {
-            workerNode = new WorkerNode();
-            workerNode.setWorkerNodeIp(instanceIp);
+        // Initialize worker node with 1 cpu and 8G RAM,
+        // and leave 80% of resources for user service usage
+        for (int i = 0; i < workerNodes.length; i++) {
+            WorkerNode workerNode = new WorkerNode();
+            workerNode.setWorkerNodeIp(workerNodes[i]);
+            workerNode.setCpu(1.0f);
+            workerNode.setMemory(8.0f);
+            workerNode.setAvailableCpu(1.0f * 0.8f);
+            workerNode.setAvailableMemory(8.0f * 0.8f);
             workerNodeRepository.save(workerNode);
         }
+
+        // Get worker node instance ip
+        Float serviceReqCpu = registerServiceRequestDTO.getCpu();
+        Float serviceReqMemory = registerServiceRequestDTO.getMemory();
+        WorkerNode workerNode = assignWorkerNode(serviceReqCpu, serviceReqMemory);
+        String instanceIp = workerNode.getWorkerNodeIp();
+
+//        WorkerNode workerNode = workerNodeRepository.findByWorkerNodeIp(instanceIp);
+//        if (workerNode == null) {
+//            workerNode = new WorkerNode();
+//            workerNode.setWorkerNodeIp(instanceIp);
+//            workerNode.setCpu(1);
+//            workerNode.setMemory(8);
+//            workerNodeRepository.save(workerNode);
+//        }
 
         // Call api to check available port on worker node
         String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
@@ -139,9 +155,14 @@ public class PodService {
         service.setWorkerNodeIp(instanceIp);
         service.setContainerName(containerName);
         service.setPort(availablePort);
+        service.setCpu(serviceReqCpu);
+        service.setMemory(serviceReqMemory);
 
         user.addService(service);
         serviceRepository.save(service);
+
+        //todo: remove
+        log.info("service assign succeed");
 
         addSecurityGroupRule(securityGroupId, availablePort);
 
@@ -250,9 +271,32 @@ public class PodService {
         }
     }
 
-    private String assignWorkerNode() {
-        int currentIndex = currentWorkerNode.getAndUpdate(i -> (i + 1) % workerNodes.length);
-        return workerNodes[currentIndex];
+    private WorkerNode assignWorkerNode(float requiredCpu, float requiredMemory) {
+        //check if cpu and memory are available for assign service
+        // if not, go to next worker node, until all worker nodes are unavailable.
+
+        int startIndex = currentWorkerNode.get();
+        int workerNodeCount = workerNodes.length;
+
+        for (int i = 0; i < workerNodeCount; i++) {
+            int currentIndex = (startIndex + i) % workerNodeCount;
+            String instanceIp = workerNodes[currentIndex];
+            WorkerNode workerNode = workerNodeRepository.findByWorkerNodeIp(instanceIp);
+
+            if (workerNode != null && workerNode.getAvailableCpu() >= requiredCpu &&
+                workerNode.getAvailableMemory() >= requiredMemory) {
+                workerNode.setAvailableCpu(workerNode.getAvailableCpu() - requiredCpu);
+                workerNode.setAvailableMemory(workerNode.getAvailableMemory() - requiredMemory);
+                workerNodeRepository.save(workerNode);
+
+                currentWorkerNode.set((currentIndex) + 1 % workerNodeCount);
+                return workerNode;
+            }
+        }
+
+        throw new IllegalStateException("No available worker node");
+//        int currentIndex = currentWorkerNode.getAndUpdate(i -> (i + 1) % workerNodes.length);
+//        return workerNodes[currentIndex];
     }
 
     private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {
