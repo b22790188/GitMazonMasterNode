@@ -31,6 +31,16 @@ public class PodController {
         return ResponseEntity.ok(instanceInfo);
     }
 
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserInfo(HttpServletRequest request) {
+        Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
+        String username = userInfo.get("username");
+
+        Map<String, String> response = new HashMap<>();
+        response.put("username", username);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/userService")
     public ResponseEntity<?> getServiceInfo(@RequestParam String username) {
         log.info(username);
