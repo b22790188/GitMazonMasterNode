@@ -48,6 +48,7 @@ public class PodService {
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
+    //todo: remove after app on production
     @PostConstruct
     public void initWorkerNodes() {
         // Initialize worker node with 1 cpu and 8G RAM,

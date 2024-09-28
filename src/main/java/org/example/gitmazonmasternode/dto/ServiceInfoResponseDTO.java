@@ -10,4 +10,5 @@ public class ServiceInfoResponseDTO {
     private String serviceName;
     private String repoName;
     private String endpoint;
+    private String containerName;
 }
