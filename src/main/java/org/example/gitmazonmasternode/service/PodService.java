@@ -48,6 +48,12 @@ public class PodService {
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
+    private final String[] workerNodes = {
+        "18.182.42.57",
+        "18.176.54.151",
+        "13.115.128.94"
+    };
+
     //todo: remove after app on production
     @PostConstruct
     public void initWorkerNodes() {
@@ -65,12 +71,6 @@ public class PodService {
             }
         }
     }
-
-    private final String[] workerNodes = {
-        "18.182.42.57",
-        "18.176.54.151",
-        "13.115.128.94"
-    };
 
     public Map<String, String> getInstanceInfo(String username, String repoName) {
 

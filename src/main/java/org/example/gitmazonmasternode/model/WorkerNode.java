@@ -1,5 +1,6 @@
 package org.example.gitmazonmasternode.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ public class WorkerNode {
     @Column(name = "worker_node_ip", nullable = false)
     private String workerNodeIp;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "workerNode", fetch = FetchType.LAZY)
     private List<Service> services;
 
