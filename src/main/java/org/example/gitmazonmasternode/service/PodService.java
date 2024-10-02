@@ -98,6 +98,47 @@ public class PodService {
         return serviceRepository.findServiceInfoByUserName(username);
     }
 
+    public boolean unRegisterService(String username, String repoName) {
+
+        org.example.gitmazonmasternode.model.Service service = serviceRepository.findByUserUsernameAndRepoName(username, repoName);
+        WorkerNode workerNode = service.getWorkerNode();
+
+        // remove container from worker node
+        String removeContainerUrl = "http://" + workerNode.getWorkerNodeIp() + ":8081/deleteContainer";
+
+        Map<String, Object> removeContainerPayload = new HashMap<>();
+        removeContainerPayload.put("container_name", service.getContainerName());
+
+        ResponseEntity<String> removeContainerResponseEntity = restTemplate.postForEntity(removeContainerUrl, removeContainerPayload, String.class);
+
+        if (removeContainerResponseEntity.getStatusCode().is2xxSuccessful()) {
+            log.info("Remove container successfully.");
+        } else {
+            log.error("Failed to remove container. Status code: " + removeContainerResponseEntity.getStatusCode());
+            return false;
+        }
+
+        // unregister endpoint from nginx
+        String unRegisterEndpointUrl = "http://18.181.165.23:8080/unregisterEndpoint";
+        Map<String, Object> unRegisterEndpointPayload = new HashMap<>();
+        unRegisterEndpointPayload.put("username", username);
+        unRegisterEndpointPayload.put("serviceName", service.getServiceName());
+
+        ResponseEntity<String> unRegisterResponseEntity = restTemplate.postForEntity(unRegisterEndpointUrl, unRegisterEndpointPayload, String.class);
+
+        if (removeContainerResponseEntity.getStatusCode().is2xxSuccessful()) {
+            log.info("unregister endpoint successfully.");
+        } else {
+            log.error("Failed to unregister endpoint. Status code: " + unRegisterResponseEntity.getStatusCode());
+            return false;
+        }
+
+        // delete service from db
+        serviceRepository.delete(service);
+
+        return true;
+    }
+
     public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) {
 
         // Get user from db, if not found, create it.
@@ -117,8 +158,6 @@ public class PodService {
         String repoOwner = extractOwnerFromRepoUrl(repoUrl);
         String repoName = extractRepoNameFromRepoUrl(repoUrl);
         String containerName = extractContainerNameFromRepoUrl(repoUrl);
-
-        //todo: check existing worker node: sprint 3
 
         //todo: handle duplicate service registration: sprint 4
 

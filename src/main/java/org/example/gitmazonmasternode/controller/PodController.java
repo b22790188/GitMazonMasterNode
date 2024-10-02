@@ -58,6 +58,13 @@ public class PodController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/unRegisterService")
+    public ResponseEntity<String> unRegisterService(@RequestParam String username, @RequestParam String repoName) {
+        boolean isSuccess = podService.unRegisterService(username, repoName);
+        String response = isSuccess ? "unregister successfully" : "unregister failed";
+        return ResponseEntity.ok(response);
+    }
+
     private Map<String, String> getUserInfoFromJwtInRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         Map<String, String> userInfo = new HashMap<>();
