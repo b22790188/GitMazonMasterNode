@@ -65,6 +65,14 @@ public class PodController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/restartContainer")
+    public ResponseEntity<String> restartContainer(@RequestParam String username, @RequestParam String repoName) {
+        boolean isSuccess = podService.restartContainer(username, repoName);
+        String response = isSuccess ? "restart successfully" : "restart failed";
+        return ResponseEntity.ok(response);
+    }
+
+
     private Map<String, String> getUserInfoFromJwtInRequest(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         Map<String, String> userInfo = new HashMap<>();

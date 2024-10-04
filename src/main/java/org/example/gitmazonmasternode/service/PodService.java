@@ -197,7 +197,6 @@ public class PodService {
         user.addService(service);
         serviceRepository.save(service);
 
-        //todo: remove
         log.info("service assign succeed");
 
         addSecurityGroupRule(securityGroupId, availablePort);
@@ -207,8 +206,6 @@ public class PodService {
 
         // Register endpoint
         registerEndpoint(registerServiceRequestDTO.getUsername(), serviceName, instanceIp, availablePort);
-
-        // todo: move add SG rule from above to here
 
         Map<String, String> serviceUrlResponse = new HashMap<>();
         serviceUrlResponse.put("serviceUrl", serviceUrl);
@@ -304,6 +301,25 @@ public class PodService {
             }
         } catch (Ec2Exception e) {
             log.error("Failed to add security group rule: " + securityGroupId + ", cause:" + e.awsErrorDetails().errorMessage(), e);
+        }
+    }
+
+    public boolean restartContainer(String username, String repoName) {
+        org.example.gitmazonmasternode.model.Service service = serviceRepository.findByUserUsernameAndRepoName(username, repoName);
+        WorkerNode workerNode = service.getWorkerNode();
+
+        String restartContainerUrl = "http://" + workerNode.getWorkerNodeIp() + ":8081/restartContainer";
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("container_name", service.getContainerName());
+
+        ResponseEntity<String> responseEntity = restTemplate.postForEntity(restartContainerUrl, payload, String.class);
+        if (responseEntity.getStatusCode().is2xxSuccessful()) {
+            log.info("Restart container successfully.");
+            return true;
+        } else {
+            log.error("Failed to restart container. Status code: " + responseEntity.getStatusCode());
+            return false;
         }
     }
 
