@@ -112,6 +112,7 @@ public class PodService {
         ResponseEntity<String> removeContainerResponseEntity = restTemplate.postForEntity(removeContainerUrl, removeContainerPayload, String.class);
 
         if (removeContainerResponseEntity.getStatusCode().is2xxSuccessful()) {
+
             log.info("Remove container successfully.");
         } else {
             log.error("Failed to remove container. Status code: " + removeContainerResponseEntity.getStatusCode());
@@ -132,6 +133,19 @@ public class PodService {
             log.error("Failed to unregister endpoint. Status code: " + unRegisterResponseEntity.getStatusCode());
             return false;
         }
+
+        // return resource back to workerNode
+        Float serviceCpu = service.getCpu();
+        Float serviceMemory = service.getMemory();
+        Float workerNodeAvailableCpu = workerNode.getAvailableCpu();
+        Float workerNodeAvailableMemory = workerNode.getAvailableMemory();
+
+        workerNode.setAvailableCpu(serviceCpu + workerNodeAvailableCpu);
+        workerNode.setAvailableMemory(serviceMemory + workerNodeAvailableMemory);
+
+        workerNodeRepository.save(workerNode);
+
+        log.info(workerNode.getCpu());
 
         // delete service from db
         serviceRepository.delete(service);
