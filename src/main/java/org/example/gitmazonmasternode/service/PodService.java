@@ -64,9 +64,9 @@ public class PodService {
                 WorkerNode workerNode = new WorkerNode();
                 workerNode.setWorkerNodeIp(nodeIp);
                 workerNode.setCpu(1.0f);
-                workerNode.setMemory(8.0f);
+                workerNode.setMemory(1.0f);
                 workerNode.setAvailableCpu(1.0f * 0.8f);
-                workerNode.setAvailableMemory(8.0f * 0.8f);
+                workerNode.setAvailableMemory(1.0f * 0.8f);
                 workerNodeRepository.save(workerNode);
             }
         }
@@ -361,8 +361,7 @@ public class PodService {
         }
 
         throw new IllegalStateException("No available worker node");
-//        int currentIndex = currentWorkerNode.getAndUpdate(i -> (i + 1) % workerNodes.length);
-//        return workerNodes[currentIndex];
+
     }
 
     private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {
