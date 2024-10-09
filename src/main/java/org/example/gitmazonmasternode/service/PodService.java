@@ -166,7 +166,8 @@ public class PodService {
         // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();
-        String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
+//        String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
+        String serviceUrl = "https://service.gitmazon.com/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
         String repoOwner = extractOwnerFromRepoUrl(repoUrl);
@@ -256,7 +257,8 @@ public class PodService {
     }
 
     private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) {
-        String registerEndpointUrl = "http://stylish.monster:8080/registerEndpoint";
+//        String registerEndpointUrl = "http://stylish.monster:8080/registerEndpoint";
+        String registerEndpointUrl = "http://service.gitmazon.com:8080/registerEndpoint";
         Map<String, Object> payload = new HashMap<>();
 
         payload.put("username", username);
