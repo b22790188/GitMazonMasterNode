@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.log4j.Log4j2;
+import org.example.gitmazonmasternode.repository.ServiceRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -18,8 +20,11 @@ import java.util.List;
 @Service
 public class GithubService {
 
+    @Autowired
+    private ServiceRepository serviceRepository;
 
     private static final String GITHUB_API_URL = "https://api.github.com/user/repos";
+    private static final String GITHUB_USER_URL = "https://api.github.com/user";
 
     public List<String> getUserRepositories(String token) {
         RestTemplate restTemplate = new RestTemplate();
@@ -27,21 +32,42 @@ public class GithubService {
         headers.set("Authorization", "token " + token);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(
-            GITHUB_API_URL,
+        ResponseEntity<String> userResponse = restTemplate.exchange(
+            GITHUB_USER_URL,
             HttpMethod.GET,
             entity,
             String.class
         );
 
         ObjectMapper mapper = new ObjectMapper();
+        String username;
         try {
-            JsonNode root = mapper.readTree(response.getBody());
+            JsonNode userRoot = mapper.readTree(userResponse.getBody());
+            username = userRoot.get("login").asText();
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Error fetching GitHub user data", e);
+        }
+
+        List<String> registeredRepoUrls = serviceRepository.findByUserUsername(username).stream()
+            .map(org.example.gitmazonmasternode.model.Service::getRepoUrl)
+            .toList();
+
+        ResponseEntity<String> reposResponse = restTemplate.exchange(
+            GITHUB_API_URL,
+            HttpMethod.GET,
+            entity,
+            String.class
+        );
+
+        try {
+            JsonNode reposRoot = mapper.readTree(reposResponse.getBody());
             List<String> cloneUrls = new ArrayList<>();
 
-            for (JsonNode node : root) {
-                String cloneUrl = node.get("clone_url").asText();
-                cloneUrls.add(cloneUrl);
+            for (JsonNode repoNode : reposRoot) {
+                String cloneUrl = repoNode.get("clone_url").asText();
+                if (!registeredRepoUrls.contains(cloneUrl)) {
+                    cloneUrls.add(cloneUrl);
+                }
             }
 
             return cloneUrls;
