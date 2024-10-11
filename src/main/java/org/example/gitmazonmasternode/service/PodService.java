@@ -163,6 +163,15 @@ public class PodService {
             userRepository.save(user);
         }
 
+        org.example.gitmazonmasternode.model.Service existingService = serviceRepository.findByUserUsernameAndServiceName(
+            registerServiceRequestDTO.getUsername(),
+            registerServiceRequestDTO.getServiceName()
+        );
+
+        if (existingService != null) {
+            return Map.of("error", "服務名稱已存在，請更換");
+        }
+
         // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();

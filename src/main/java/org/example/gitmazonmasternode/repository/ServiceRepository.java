@@ -11,6 +11,8 @@ import java.util.List;
 public interface ServiceRepository extends JpaRepository<Service, Long> {
     Service findByUserUsernameAndRepoName(String userName, String repoName);
 
+    Service findByUserUsernameAndServiceName(String userName, String serviceName);
+
     @Query("SELECT new org.example.gitmazonmasternode.dto.ServiceInfoResponseDTO(s.user.username, s.serviceName, s.repoName, s.endpoint, s.containerName) " +
         "FROM Service s WHERE s.user.username = :username")
     List<ServiceInfoResponseDTO> findServiceInfoByUserName(String username);
