@@ -157,7 +157,7 @@ public class PodService {
         return true;
     }
 
-    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) {
+    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) throws Exception {
 
         // Get user from db, if not found, create it.
         User user = userRepository.findByUsername(registerServiceRequestDTO.getUsername());
@@ -199,7 +199,7 @@ public class PodService {
         String availablePortUrl = "http://" + instanceIp + ":8081/availablePort";
         ResponseEntity<Map> responseEntity = restTemplate.getForEntity(availablePortUrl, Map.class);
         if (!responseEntity.getStatusCode().is2xxSuccessful() || responseEntity.getBody() == null) {
-            return Map.of("error", "Failed to fetch available port");
+            throw new IllegalStateException("Failed to fetch available port");
         }
 
         Integer availablePort = (Integer) responseEntity.getBody().get("availablePort");
@@ -230,7 +230,9 @@ public class PodService {
             notifyWebhookServer(repoUrl);
         } catch (Exception e) {
             log.error("Failed to notify webhook server: {}", e.getMessage());
-            return Map.of("error", e.getMessage());
+            rollbackWorkerNodeResource(workerNode, serviceReqCpu, serviceReqMemory);
+            serviceRepository.delete(service);
+            throw new IllegalStateException(e.getMessage());
         }
 
         // Register endpoint
@@ -395,8 +397,14 @@ public class PodService {
             }
         }
 
-        throw new IllegalStateException("No available worker node");
+        throw new IllegalStateException("服務資源已耗盡，請聯絡系統管理員");
 
+    }
+
+    private void rollbackWorkerNodeResource(WorkerNode workerNode, Float cpu, Float memory) {
+        workerNode.setAvailableCpu(workerNode.getAvailableCpu() + cpu);
+        workerNode.setAvailableMemory(workerNode.getAvailableMemory() + memory);
+        workerNodeRepository.save(workerNode);
     }
 
     private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {

@@ -50,12 +50,19 @@ public class PodController {
 
     @PostMapping("/registerService")
     public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
-        Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
-        String username = userInfo.get("username");
-        String accessToken = userInfo.get("accessToken");
+        try {
+            Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
+            String username = userInfo.get("username");
+            String accessToken = userInfo.get("accessToken");
 
-        Map<String, String> response = podService.registerService(registerServiceRequestDTO, accessToken);
-        return ResponseEntity.ok(response);
+            Map<String, String> response = podService.registerService(registerServiceRequestDTO, accessToken);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.ok(errorResponse);
+        }
     }
 
     @PostMapping("/unRegisterService")
