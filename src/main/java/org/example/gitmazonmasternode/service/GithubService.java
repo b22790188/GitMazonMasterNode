@@ -23,7 +23,7 @@ public class GithubService {
     @Autowired
     private ServiceRepository serviceRepository;
 
-    private static final String GITHUB_API_URL = "https://api.github.com/user/repos";
+    private static final String GITHUB_API_URL = "https://api.github.com/user/repos?visibility=public";
     private static final String GITHUB_USER_URL = "https://api.github.com/user";
 
     public List<String> getUserRepositories(String token) {

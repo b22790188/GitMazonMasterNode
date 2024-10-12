@@ -1,5 +1,7 @@
 package org.example.gitmazonmasternode.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.example.gitmazonmasternode.dto.RegisterServiceRequestDTO;
@@ -15,6 +17,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.*;
@@ -183,10 +187,7 @@ public class PodService {
         String repoName = extractRepoNameFromRepoUrl(repoUrl);
         String containerName = extractContainerNameFromRepoUrl(repoUrl);
 
-        //todo: handle duplicate service registration: sprint 4
-
         setGithubWebhook(repoOwner, repoName, accessToken);
-
 
         // Get worker node instance ip
         Float serviceReqCpu = registerServiceRequestDTO.getCpu();
@@ -202,7 +203,6 @@ public class PodService {
         }
 
         Integer availablePort = (Integer) responseEntity.getBody().get("availablePort");
-
 
         // Create service and associate with user
         org.example.gitmazonmasternode.model.Service service = new org.example.gitmazonmasternode.model.Service();
@@ -226,7 +226,12 @@ public class PodService {
         addSecurityGroupRule(securityGroupId, availablePort);
 
         // Notify webhook server to build image upon registration
-        notifyWebhookServer(repoUrl);
+        try {
+            notifyWebhookServer(repoUrl);
+        } catch (Exception e) {
+            log.error("Failed to notify webhook server: {}", e.getMessage());
+            return Map.of("error", e.getMessage());
+        }
 
         // Register endpoint
         registerEndpoint(registerServiceRequestDTO.getUsername(), serviceName, instanceIp, availablePort);
@@ -239,8 +244,7 @@ public class PodService {
 
     }
 
-    private void notifyWebhookServer(String repoUrl) {
-        //todo: refactor image builder server ip to environment variable
+    private void notifyWebhookServer(String repoUrl) throws Exception {
         String webhookUrl = "http://54.168.192.186:8080/deploy";
 
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
@@ -256,17 +260,37 @@ public class PodService {
         repository.put("owner", owner);
         payload.put("repository", repository);
 
-        ResponseEntity<String> responseEntity = restTemplate.postForEntity(webhookUrl, payload, String.class);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
-        if (responseEntity.getStatusCode().is2xxSuccessful()) {
-            log.info("Webhook server notified successfully.");
-        } else {
-            log.error("Failed to notify webhook server. Status code: " + responseEntity.getStatusCode());
+        try {
+            ResponseEntity<Map> responseEntity = restTemplate.postForEntity(webhookUrl, request, Map.class);
+
+            if (responseEntity.getStatusCode().is2xxSuccessful()) {
+                log.info("Webhook server notified successfully.");
+            }
+
+        } catch (HttpClientErrorException | HttpServerErrorException e) {
+            String responseBody = e.getResponseBodyAsString();
+            log.error("Failed to notify webhook server: {}", responseBody);
+
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                Map<String, Object> responseJson = mapper.readValue(responseBody, Map.class);
+                if (responseJson.containsKey("error")) {
+                    String errorMessage = (String) responseJson.get("error");
+                    throw new Exception(errorMessage);
+                } else {
+                    throw new Exception("Server error");
+                }
+            } catch (JsonProcessingException jsonEx) {
+                throw new Exception("Error response from webhook server: " + responseBody);
+            }
         }
     }
 
     private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) {
-//        String registerEndpointUrl = "http://stylish.monster:8080/registerEndpoint";
         String registerEndpointUrl = "http://service.gitmazon.com:8080/registerEndpoint";
         Map<String, Object> payload = new HashMap<>();
 
