@@ -48,7 +48,6 @@ public class PodService {
     @Autowired
     private WorkerNodeRepository workerNodeRepository;
 
-    // todo: refactor to environment variable
     @Value("${security.group.id}")
     private String securityGroupId;
 
@@ -159,7 +158,6 @@ public class PodService {
 
         log.info(workerNode.getCpu());
 
-        // delete service from db
         serviceRepository.delete(service);
 
         return true;
@@ -417,7 +415,6 @@ public class PodService {
     private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {
         String setWebhookUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/hooks";
 
-        //todo: refactor webhookUrl to environment variable
         String webhookUrl = "http://" + imageProducerHost + ":8080/deploy";
         Map<String, Object> payload = new HashMap<>();
         payload.put("name", "web");

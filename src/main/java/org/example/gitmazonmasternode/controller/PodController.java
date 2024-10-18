@@ -26,30 +26,43 @@ public class PodController {
     private PodService podService;
 
     @GetMapping("/info")
-    public ResponseEntity<Map<String, String>> getInstanceInfo(@RequestParam String username, @RequestParam String repoName) {
-        Map<String, String> instanceInfo = podService.getInstanceInfo(username, repoName);
-        return ResponseEntity.ok(instanceInfo);
+    public ResponseEntity<?> getInstanceInfo(@RequestParam String username, @RequestParam String repoName) {
+        try {
+            Map<String, String> instanceInfo = podService.getInstanceInfo(username, repoName);
+            return ResponseEntity.ok(instanceInfo);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
     @GetMapping("/user")
     public ResponseEntity<?> getUserInfo(HttpServletRequest request) {
-        Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
-        String username = userInfo.get("username");
+        try {
 
-        Map<String, String> response = new HashMap<>();
-        response.put("username", username);
-        return ResponseEntity.ok(response);
+            Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
+            String username = userInfo.get("username");
+
+            Map<String, String> response = new HashMap<>();
+            response.put("username", username);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
     @GetMapping("/userService")
     public ResponseEntity<?> getServiceInfo(@RequestParam String username) {
-        log.info(username);
-        List<ServiceInfoResponseDTO> serviceInfoResponseDTOList = podService.getServiceInfoByUserName(username);
-        return ResponseEntity.ok(serviceInfoResponseDTOList);
+        try {
+            log.info(username);
+            List<ServiceInfoResponseDTO> serviceInfoResponseDTOList = podService.getServiceInfoByUserName(username);
+            return ResponseEntity.ok(serviceInfoResponseDTOList);
+        } catch (JwtException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/registerService")
-    public ResponseEntity<Map<String, String>> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
+    public ResponseEntity<?> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
         try {
             Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
             String username = userInfo.get("username");
@@ -61,22 +74,32 @@ public class PodController {
         } catch (Exception e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
-            return ResponseEntity.ok(errorResponse);
+            return ResponseEntity.badRequest().body(errorResponse);
         }
     }
 
     @PostMapping("/unRegisterService")
-    public ResponseEntity<String> unRegisterService(@RequestParam String username, @RequestParam String repoName) {
-        boolean isSuccess = podService.unRegisterService(username, repoName);
-        String response = isSuccess ? "unregister successfully" : "unregister failed";
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> unRegisterService(@RequestParam String username, @RequestParam String repoName) {
+        try {
+
+            boolean isSuccess = podService.unRegisterService(username, repoName);
+            String response = isSuccess ? "unregister successfully" : "unregister failed";
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
     @PostMapping("/restartContainer")
-    public ResponseEntity<String> restartContainer(@RequestParam String username, @RequestParam String repoName) {
-        boolean isSuccess = podService.restartContainer(username, repoName);
-        String response = isSuccess ? "restart successfully" : "restart failed";
-        return ResponseEntity.ok(response);
+    public ResponseEntity<?> restartContainer(@RequestParam String username, @RequestParam String repoName) {
+        try {
+
+            boolean isSuccess = podService.restartContainer(username, repoName);
+            String response = isSuccess ? "restart successfully" : "restart failed";
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
 
