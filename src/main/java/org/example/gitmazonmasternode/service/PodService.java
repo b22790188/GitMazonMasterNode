@@ -52,6 +52,12 @@ public class PodService {
     @Value("${security.group.id}")
     private String securityGroupId;
 
+    @Value("${imageProducer.host}")
+    private String imageProducerHost;
+
+    @Value("${nginx.host}")
+    private String nginxHost;
+
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
     // todo: refactor ip to environment variable
@@ -126,7 +132,7 @@ public class PodService {
         }
 
         // unregister endpoint from nginx
-        String unRegisterEndpointUrl = "http://18.181.165.23:8080/unregisterEndpoint";
+        String unRegisterEndpointUrl = "http://" + nginxHost + ":8080/unregisterEndpoint";
         Map<String, Object> unRegisterEndpointPayload = new HashMap<>();
         unRegisterEndpointPayload.put("username", username);
         unRegisterEndpointPayload.put("serviceName", service.getServiceName());
@@ -181,7 +187,7 @@ public class PodService {
         // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();
-        String serviceUrl = "https://service.gitmazon.com/" + registerServiceRequestDTO.getUsername()
+        String serviceUrl = "https://" + nginxHost + "/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
         String repoOwner = extractOwnerFromRepoUrl(repoUrl);
@@ -248,7 +254,7 @@ public class PodService {
     }
 
     private void notifyWebhookServer(String repoUrl) throws Exception {
-        String webhookUrl = "http://54.168.192.186:8080/deploy";
+        String webhookUrl = "http://" + imageProducerHost + ":8080/deploy";
 
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
         String repositoryName = extractRepoNameFromRepoUrl(repoUrl);
@@ -294,7 +300,7 @@ public class PodService {
     }
 
     private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) {
-        String registerEndpointUrl = "http://service.gitmazon.com:8080/registerEndpoint";
+        String registerEndpointUrl = "http://" + nginxHost + ":8080/registerEndpoint";
         Map<String, Object> payload = new HashMap<>();
 
         payload.put("username", username);
@@ -412,7 +418,7 @@ public class PodService {
         String setWebhookUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/hooks";
 
         //todo: refactor webhookUrl to environment variable
-        String webhookUrl = "http://54.168.192.186:8080/deploy";
+        String webhookUrl = "http://" + imageProducerHost + ":8080/deploy";
         Map<String, Object> payload = new HashMap<>();
         payload.put("name", "web");
         Map<String, Object> config = new HashMap<>();
