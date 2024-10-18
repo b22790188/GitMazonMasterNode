@@ -12,6 +12,7 @@ import org.example.gitmazonmasternode.repository.ServiceRepository;
 import org.example.gitmazonmasternode.repository.UserRepository;
 import org.example.gitmazonmasternode.repository.WorkerNodeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -47,18 +48,19 @@ public class PodService {
     @Autowired
     private WorkerNodeRepository workerNodeRepository;
 
-    //todo: refactor to environment variable
-    private final String securityGroupId = "sg-07fee68e6775cab2f";
+    // todo: refactor to environment variable
+    @Value("${security.group.id}")
+    private String securityGroupId;
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
+    // todo: refactor ip to environment variable
     private final String[] workerNodes = {
         "18.182.42.57",
         "18.176.54.151",
         "13.115.128.94"
     };
 
-    //todo: remove after app on production
     @PostConstruct
     public void initWorkerNodes() {
         // Initialize worker node with 1 cpu and 8G RAM,
@@ -157,7 +159,7 @@ public class PodService {
         return true;
     }
 
-    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) throws Exception {
+    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) {
 
         // Get user from db, if not found, create it.
         User user = userRepository.findByUsername(registerServiceRequestDTO.getUsername());
@@ -179,7 +181,6 @@ public class PodService {
         // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();
-//        String serviceUrl = "https://stylish.monster/" + registerServiceRequestDTO.getUsername()
         String serviceUrl = "https://service.gitmazon.com/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
@@ -306,7 +307,7 @@ public class PodService {
         if (responseEntity.getStatusCode().is2xxSuccessful()) {
             log.info("Register endpoint  successfully.");
         } else {
-            log.error("Failed to register endpoint. Status code: " + responseEntity.getStatusCode());
+            log.error("Failed to register endpoint. Status code: {}", responseEntity.getStatusCode());
         }
     }
 

@@ -85,7 +85,7 @@ public class PodController {
         Map<String, String> userInfo = new HashMap<>();
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7); // Remove "Bearer " prefix
+            String token = authHeader.substring(7);
             try {
                 // Validate the token and extract the username
                 String username = jwtUtil.extractUsername(token);
