@@ -59,7 +59,6 @@ public class PodService {
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
-    // todo: refactor ip to environment variable
     private final String[] workerNodes = {
         "18.182.42.57",
         "18.176.54.151",
@@ -131,7 +130,7 @@ public class PodService {
         }
 
         // unregister endpoint from nginx
-        String unRegisterEndpointUrl = "http://" + nginxHost + ":8080/unregisterEndpoint";
+        String unRegisterEndpointUrl = "https://" + nginxHost + ":8080/unregisterEndpoint";
         Map<String, Object> unRegisterEndpointPayload = new HashMap<>();
         unRegisterEndpointPayload.put("username", username);
         unRegisterEndpointPayload.put("serviceName", service.getServiceName());
@@ -163,7 +162,7 @@ public class PodService {
         return true;
     }
 
-    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) {
+    public Map<String, String> registerService(RegisterServiceRequestDTO registerServiceRequestDTO, String accessToken) throws IllegalStateException {
 
         // Get user from db, if not found, create it.
         User user = userRepository.findByUsername(registerServiceRequestDTO.getUsername());
@@ -281,24 +280,27 @@ public class PodService {
         } catch (HttpClientErrorException | HttpServerErrorException e) {
             String responseBody = e.getResponseBodyAsString();
             log.error("Failed to notify webhook server: {}", responseBody);
-
-            try {
-                ObjectMapper mapper = new ObjectMapper();
-                Map<String, Object> responseJson = mapper.readValue(responseBody, Map.class);
-                if (responseJson.containsKey("error")) {
-                    String errorMessage = (String) responseJson.get("error");
-                    throw new Exception(errorMessage);
-                } else {
-                    throw new Exception("Server error");
-                }
-            } catch (JsonProcessingException jsonEx) {
-                throw new Exception("Error response from webhook server: " + responseBody);
-            }
+            handleErrorResponse(responseBody);
         }
     }
 
-    private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) {
-        String registerEndpointUrl = "http://" + nginxHost + ":8080/registerEndpoint";
+    private void handleErrorResponse(String responseBody) throws Exception {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            Map<String, Object> responseJson = mapper.readValue(responseBody, Map.class);
+            if (responseJson.containsKey("error")) {
+                throw new Exception((String) responseJson.get("error"));
+            } else {
+                throw new Exception("Server error");
+            }
+        } catch (JsonProcessingException jsonEx) {
+            throw new Exception("Error response from webhook server: " + responseBody);
+        }
+    }
+
+
+    private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) throws IllegalStateException {
+        String registerEndpointUrl = "https://" + nginxHost + ":8080/registerEndpoint";
         Map<String, Object> payload = new HashMap<>();
 
         payload.put("username", username);
@@ -380,7 +382,7 @@ public class PodService {
     }
 
     private WorkerNode assignWorkerNode(float requiredCpu, float requiredMemory) {
-        //check if cpu and memory are available for assign service
+        // Check if cpu and memory are available for assign service
         // if not, go to next worker node, until all worker nodes are unavailable.
 
         int startIndex = currentWorkerNode.get();

@@ -22,8 +22,7 @@ public class SecurityConfig {
                 .requestMatchers("/toFrontend").authenticated()
                 .anyRequest().permitAll())
             .oauth2Login(oauth2 -> oauth2
-                .defaultSuccessUrl("/toFrontend", true))
-            .logout(logout -> logout.logoutUrl("/http://localhost:8080/index.html"));
+                .defaultSuccessUrl("/toFrontend", true));
 
         return http.build();
     }
