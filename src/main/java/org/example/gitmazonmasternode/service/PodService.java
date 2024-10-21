@@ -57,13 +57,12 @@ public class PodService {
     @Value("${nginx.host}")
     private String nginxHost;
 
+    @Value("${worker.nodes}")
+    private String workerNodesString;
+
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
-    private final String[] workerNodes = {
-        "18.182.42.57",
-        "18.176.54.151",
-        "13.115.128.94"
-    };
+    private final String[] workerNodes = workerNodesString.split(",");
 
     @PostConstruct
     public void initWorkerNodes() {
