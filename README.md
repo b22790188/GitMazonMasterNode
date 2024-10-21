@@ -1,6 +1,5 @@
 # GitMazon
 
-----
 An automated deployment system that allows users to deploy their services with a single click (currently for Java Spring Boot).
 ----
 
@@ -11,6 +10,10 @@ An automated deployment system that allows users to deploy their services with a
 - Utilizes the **AWS SDK** to dynamically add security group rules, enabling user services to be accessed.
 - Receives resource usage data via **Kafka** and sends it back to users in real-time through **WebSocket**.
 - Implements a **Webhook** server using **Flask** to trigger deployments when users push new code.
+
+## Architecture
+
+![Architecture](https://gitmazon.s3.ap-northeast-1.amazonaws.com/%E6%88%AA%E5%9C%96+2024-10-22+%E5%87%8C%E6%99%A81.34.57.png)
 
 ## Related Repository
 
