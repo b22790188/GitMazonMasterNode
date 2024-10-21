@@ -130,7 +130,7 @@ public class PodService {
         }
 
         // unregister endpoint from nginx
-        String unRegisterEndpointUrl = "https://" + nginxHost + ":8080/unregisterEndpoint";
+        String unRegisterEndpointUrl = nginxHost + "/unregisterEndpoint";
         Map<String, Object> unRegisterEndpointPayload = new HashMap<>();
         unRegisterEndpointPayload.put("username", username);
         unRegisterEndpointPayload.put("serviceName", service.getServiceName());
@@ -184,7 +184,7 @@ public class PodService {
         // concat user service endpoint
         String repoUrl = registerServiceRequestDTO.getRepoUrl();
         String serviceName = registerServiceRequestDTO.getServiceName();
-        String serviceUrl = "https://" + nginxHost + "/" + registerServiceRequestDTO.getUsername()
+        String serviceUrl = nginxHost + "/" + registerServiceRequestDTO.getUsername()
             + "/" + registerServiceRequestDTO.getServiceName();
 
         String repoOwner = extractOwnerFromRepoUrl(repoUrl);
@@ -251,7 +251,7 @@ public class PodService {
     }
 
     private void notifyWebhookServer(String repoUrl) throws Exception {
-        String webhookUrl = "http://" + imageProducerHost + ":8080/deploy";
+        String webhookUrl = imageProducerHost + "/deploy";
 
         String repositoryOwner = extractOwnerFromRepoUrl(repoUrl);
         String repositoryName = extractRepoNameFromRepoUrl(repoUrl);
@@ -300,7 +300,7 @@ public class PodService {
 
 
     private void registerEndpoint(String username, String serviceName, String instanceIp, Integer port) throws IllegalStateException {
-        String registerEndpointUrl = "https://" + nginxHost + ":8080/registerEndpoint";
+        String registerEndpointUrl = nginxHost + "/registerEndpoint";
         Map<String, Object> payload = new HashMap<>();
 
         payload.put("username", username);
@@ -417,7 +417,7 @@ public class PodService {
     private void setGithubWebhook(String repoOwner, String repoName, String accessToken) {
         String setWebhookUrl = "https://api.github.com/repos/" + repoOwner + "/" + repoName + "/hooks";
 
-        String webhookUrl = "http://" + imageProducerHost + ":8080/deploy";
+        String webhookUrl = imageProducerHost + "/deploy";
         Map<String, Object> payload = new HashMap<>();
         payload.put("name", "web");
         Map<String, Object> config = new HashMap<>();
@@ -430,7 +430,6 @@ public class PodService {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
 
-        log.info(accessToken);
 
         headers.setContentType(MediaType.APPLICATION_JSON);
 

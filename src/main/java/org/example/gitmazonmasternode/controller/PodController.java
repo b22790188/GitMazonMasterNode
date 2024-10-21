@@ -38,7 +38,6 @@ public class PodController {
     @GetMapping("/user")
     public ResponseEntity<?> getUserInfo(HttpServletRequest request) {
         try {
-
             Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
             String username = userInfo.get("username");
 
@@ -65,7 +64,6 @@ public class PodController {
     public ResponseEntity<?> registerService(@RequestBody RegisterServiceRequestDTO registerServiceRequestDTO, HttpServletRequest request) {
         try {
             Map<String, String> userInfo = getUserInfoFromJwtInRequest(request);
-            String username = userInfo.get("username");
             String accessToken = userInfo.get("accessToken");
 
             Map<String, String> response = podService.registerService(registerServiceRequestDTO, accessToken);
@@ -81,7 +79,6 @@ public class PodController {
     @PostMapping("/unRegisterService")
     public ResponseEntity<?> unRegisterService(@RequestParam String username, @RequestParam String repoName) {
         try {
-
             boolean isSuccess = podService.unRegisterService(username, repoName);
             String response = isSuccess ? "unregister successfully" : "unregister failed";
             return ResponseEntity.ok(response);
@@ -93,7 +90,6 @@ public class PodController {
     @PostMapping("/restartContainer")
     public ResponseEntity<?> restartContainer(@RequestParam String username, @RequestParam String repoName) {
         try {
-
             boolean isSuccess = podService.restartContainer(username, repoName);
             String response = isSuccess ? "restart successfully" : "restart failed";
             return ResponseEntity.ok(response);
