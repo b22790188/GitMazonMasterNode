@@ -15,6 +15,10 @@ An automated deployment system that allows users to deploy their services with a
 
 ![Architecture](https://gitmazon.s3.ap-northeast-1.amazonaws.com/%E6%88%AA%E5%9C%96+2024-10-22+%E5%87%8C%E6%99%A81.34.57.png)
 
+## Demo Video
+
+[![GitMazonDemo](https://gitmazon.s3.ap-northeast-1.amazonaws.com/%E6%88%AA%E5%9C%96+2024-10-22+%E4%B8%8B%E5%8D%881.10.01.png)](https://www.youtube.com/watch?v=x0KQoQbaO60)
+
 ## Related Repository
 
 - [GitMazonMainService](https://github.com/b22790188/GitMazonMainService) - Provides a frontend interface and real-time SSH connection functionality.
