@@ -3,9 +3,16 @@
 An automated deployment system that allows users to deploy their services with a single click (currently for Java Spring Boot).
 ----
 
-## Feature 
+## Features
+
+- Automated deployment of Spring Boot projects.
+- Real-time service interaction via web-based terminal.
+- Real-time monitoring of service CPU and RAM usage.
+
+## Technique used
 - Deploys user services in **Docker containers** on **AWS EC2**.
 - Uses **Nginx** as a reverse proxy to route traffic to services.
+- Utilizes **pty4j** with **Xterm.js** to allow users to connect via **SSH** and interact with their services in        real-time through a web-based terminal.
 - Employs **shell scripts** to create Docker images from user repositories and retrieve real-time service usage.
 - Utilizes the **AWS SDK** to dynamically add security group rules, enabling user services to be accessed.
 - Receives resource usage data via **Kafka** and sends it back to users in real-time through **WebSocket**.
