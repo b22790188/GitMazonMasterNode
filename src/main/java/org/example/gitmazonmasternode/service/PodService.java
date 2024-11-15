@@ -62,12 +62,14 @@ public class PodService {
 
     private final AtomicInteger currentWorkerNode = new AtomicInteger(0);
 
-    private final String[] workerNodes = workerNodesString.split(",");
+    private String[] workerNodes;
 
     @PostConstruct
     public void initWorkerNodes() {
         // Initialize worker node with 1 cpu and 8G RAM,
         // and leave 80% of resources for user service usage
+
+        workerNodes = workerNodesString.split(",");
         for (String nodeIp : workerNodes) {
             if (workerNodeRepository.findByWorkerNodeIp(nodeIp) == null) {
                 WorkerNode workerNode = new WorkerNode();
